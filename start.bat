@@ -1,7 +1,7 @@
 :: Important stuff
 @echo off && cls
-title GoAnimate Wrapper
-if not exist "installed" (if not exist "notinstalled" (echo GoAnimate Wrapper Configuration File >> notinstalled))
+title Old GoAnimate 2025
+if not exist "installed" (if not exist "notinstalled" (echo Old GoAnimate 2025 Configuration File >> notinstalled))
 ::::::::::::::::::::
 :: Initialization ::
 ::::::::::::::::::::
@@ -11,12 +11,12 @@ TASKKILL /IM node.exe /F 2>nul
 cls
 
 :::::::::::::::::::::::::::::
-:: Start GoAnimate Wrapper ::
+:: Start Old GoAnimate 2025 ::
 :::::::::::::::::::::::::::::
 
 :: Check for installation
 if exist notinstalled (
-	echo GoAnimate Wrapper is not installed! Installing...
+	echo Old GoAnimate 2025 is not installed! Installing...
 	call npm install
 	ren "notinstalled" "installed"
 	cls
@@ -27,6 +27,6 @@ if exist notinstalled (
 
 :: Run npm start
 :start
-echo GoAnimate Wrapper is now starting...
+echo Old GoAnimate 2025 is now starting...
 echo Please navigate to http://localhost on your browser.
 npm start
