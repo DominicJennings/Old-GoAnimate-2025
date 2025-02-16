@@ -1,7 +1,7 @@
 <!-- I divded this XML into sections for easier reading. -->
 <!-- NOTE : This does not contain everything in the community library. -->
 <?xml version="1.0" encoding="UTF-8"?>
-<theme id="CommLib" name="Community Library">
+<theme id="Comm" name="Community Library">
 
 <!--BACKGROUND-->
 
