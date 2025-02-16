@@ -2,44 +2,51 @@ const exFolder = process.env.EXAMPLE_FOLDER;
 const caché = require("../asset/caché");
 const fUtil = require("../misc/file");
 const nodezip = require("node-zip");
-const parse = require("./parse");
+const parse = require("../movie/parse");
 const fs = require("fs");
 const truncate = require("truncate");
 
 module.exports = {
 	/**
 	 *
-	 * @param {Buffer} movieZip
-	 * @param {string} nëwId
-	 * @param {string} oldId
+	 * @param {Buffer} starterZip
 	 * @returns {Promise<string>}
 	 */
-	save(movieZip, thumb, oldId, nëwId = oldId) {
-		if (thumb && nëwId.startsWith("m-")) {
-			const n = Number.parseInt(nëwId.substr(2));
-			const thumbFile = fUtil.getFileIndex("thumb-", ".png", n);
-			fs.writeFileSync(thumbFile, thumb);
-		}
-
+	save(starterZip, thumb) {
 		return new Promise(async (res, rej) => {
-			caché.transfer(oldId, nëwId);
-			var i = nëwId.indexOf("-");
-			var prefix = nëwId.substr(0, i);
-			var suffix = nëwId.substr(i + 1);
-			var zip = nodezip.unzip(movieZip);
+			var sId = fUtil.getNextFileId("starter-", ".xml");
+			var zip = nodezip.unzip(starterZip);
+			
+			const thumbFile = fUtil.getFileIndex("starter-", ".png", sId);
+			fs.writeFileSync(thumbFile, thumb);
+			var path = fUtil.getFileIndex("starter-", ".xml", sId);
+			var writeStream = fs.createWriteStream(path);
+			var assetBuffers = caché.loadTable(sId);
+			parse.unpackMovie(zip, thumb, assetBuffers).then((data) => {
+				writeStream.write(data, () => {
+					writeStream.close();
+					res("s-" + sId);
+				});
+			});
+				
+				
+		});
+	},
+	delete(mId) {
+		return new Promise(async (res, rej) => {
+			var i = mId.indexOf("-");
+			var prefix = mId.substr(0, i);
+			var suffix = mId.substr(i + 1);
 			switch (prefix) {
-				case "m": {
-					var path = fUtil.getFileIndex("movie-", ".xml", suffix);
-					var writeStream = fs.createWriteStream(path);
-					var assetBuffers = caché.loadTable(nëwId);
-					parse.unpackMovie(zip, thumb, assetBuffers).then((data) => {
-						writeStream.write(data, () => {
-							writeStream.close();
-							res(nëwId);
-						});
-					});
+				case "m":
+					var moviePath = fUtil.getFileIndex("movie-", ".xml", suffix);
+					var thumbPath = fUtil.getFileIndex("thumb-", ".png", suffix);
+					fs.unlinkSync(moviePath);
+					fs.unlinkSync(thumbPath);
+					caché.clearTable(mId);
+					res(mId);
 					break;
-				}
+				
 				default:
 					rej();
 			}
@@ -57,20 +64,10 @@ module.exports = {
 					res(data.subarray(data.indexOf(80)));
 					break;
 				}
-				case "s":
 				case "m": {
 					let numId = Number.parseInt(suffix);
 					if (isNaN(numId)) res();
-					switch (prefix) {
-						case "s": {
-							var filePath = fUtil.getFileIndex("starter-", ".xml", numId);
-							break;
-						}
-						case "m": {
-							var filePath = fUtil.getFileIndex("movie-", ".xml", numId);
-							break;
-						}
-					}
+					let filePath = fUtil.getFileIndex("movie-", ".xml", numId);
 					if (!fs.existsSync(filePath)) res();
 
 					const buffer = fs.readFileSync(filePath);
@@ -78,7 +75,7 @@ module.exports = {
 
 					try {
 						parse.packMovie(buffer, mId).then((pack) => {
-						parse.unpackXml(buffer, mId).then(v => res(v));
+						parse.packXml(buffer, mId).then(v => res(v));
 							caché.saveTable(mId, pack.caché);
 							res(pack.zipBuf);
 						});
@@ -120,21 +117,20 @@ module.exports = {
 	},
 	thumb(movieId) {
 		return new Promise(async (res, rej) => {
-			if (!movieId.startsWith("m-")) return;
+			if (!movieId.startsWith("s-")) return;
 			const n = Number.parseInt(movieId.substr(2));
-			const fn = fUtil.getFileIndex("thumb-", ".png", n);
+			const fn = fUtil.getFileIndex("starter-", ".png", n);
 			isNaN(n) ? rej() : res(fs.readFileSync(fn));
 		});
 	},
 	list() {
-		const array = [];
-		const last = fUtil.getLastFileIndex("movie-", ".xml");
-		for (let c = last; c >= 0; c--) {
-			const movie = fs.existsSync(fUtil.getFileIndex("movie-", ".xml", c));
-			const thumb = fs.existsSync(fUtil.getFileIndex("thumb-", ".png", c));
-			if (movie && thumb) array.push(`m-${c}`);
+		const table = [];
+		var ids = fUtil.getValidFileIndicies("starter-", ".xml");
+		for (const i in ids) {
+			var id = `s-${ids[i]}`;
+			table.unshift({ id: id });
 		}
-		return array;
+		return table;
 	},
 	meta(movieId) {
 		return new Promise(async (res, rej) => {
