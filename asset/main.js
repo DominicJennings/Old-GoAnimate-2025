@@ -8,9 +8,32 @@ module.exports = {
 	load(mId, aId) {
 		return caché.load(mId, aId);
 	},
+	delete(mId, aId) {
+		return caché.delete(mId, aId);
+	},
 	save(buffer, mId, mode, ext) {
-		var suffix = `-${mode}.${ext}`;
-		return caché.newItem(buffer, mId, "", suffix);
+		var suffix;
+                switch (mode) { 
+                         case "prop": { 
+                                 suffix = `-${mode}.${ext}`;
+                                 return caché.newProp(buffer, mId, "", suffix); 
+                                 break;
+                         }
+                         case "video": { 
+                                 suffix = `-${mode}.${ext}`;
+                                 if (mode == "dontimport") {
+                                         console.log;
+                                 } else {
+                                         return caché.newVideo(buffer, mId, "", suffix); 
+                                 }
+                                 break;
+                         }
+                         default: {
+                                 suffix = `-${mode}.${ext}`;
+                                 return caché.newItem(buffer, mId, "", suffix);
+                                 break;
+                         }
+                }
 	},
 	list(mId, mode) {
 		var ret = [];
@@ -44,8 +67,8 @@ module.exports = {
 			}
 
 			return new Promise(function (resolve, reject) {
-				console.log(`${process.env.caché}/${mode}.${aId}`);
-				mp3Duration(`${process.env.caché}/${mode}.${aId}`, (e, d) => {
+				console.log(`${process.env.CACHÉ_FOLDER}/${mId}.${aId}`);
+				mp3Duration(`${process.env.CACHÉ_FOLDER}/${mId}.${aId}`, (e, d) => {
 					var dur = d * 1e3;
 					console.log(dur);
 					var dot = aId.lastIndexOf(".");
@@ -54,7 +77,11 @@ module.exports = {
 					var ext = aId.substr(dot + 1);
 					var subtype = aId.substr(dash + 1, dot - dash - 1);
 					console.log(subtype);
-					ret.push({ id: aId, ext: ext, name: name, subtype: subtype, duration: dur });
+                                        if (dur == '0' || 'undefined') {
+					        ret.push({ id: aId, ext: ext, name: name, subtype: subtype});
+                                        } else {
+                                                ret.push({ id: aId, ext: ext, name: name, subtype: subtype, duration: dur });
+                                        }
 					console.log(ret);
 				});
 				resolve(ret);
@@ -64,6 +91,7 @@ module.exports = {
 	});
 		return ret;
 	},
+
 	listAll(mId) {
 		var ret = [];
 		var files = caché.list(mId);

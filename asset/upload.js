@@ -36,11 +36,5 @@ module.exports = function (req, res, url) {
 				res.end();
 			});
 			return true;
-		case "/goapi/saveSound/":
-			loadPost(req, res).then(([data, mId]) => {
-				var bytes = Buffer.from(data.bytes, "base64");
-				res.end("0" + asset.save(bytes, mId, "voiceover", "ogg"));
-			});
-			return true;
 	}
 };
